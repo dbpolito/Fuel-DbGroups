@@ -1,80 +1,66 @@
-#DbRoutes
+#DbGroups
 
-Store all of the application routes in a database table.
+Store ACL permission in the Database
 
 ###Configuration
 
-Create the dbroutes database table
+Create the dbgroups tables
 
-    CREATE TABLE IF NOT EXISTS `dbroutes` (
-        `id` int(11) NOT NULL AUTO_INCREMENT,
-        `route` text NOT NULL,
-        `translation` text NOT NULL,
+
+    CREATE TABLE IF NOT EXISTS `users_groups` (
+        `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+        `name` varchar(255) NOT NULL,
         PRIMARY KEY (`id`)
     );
 
+    CREATE TABLE IF NOT EXISTS `users_groups_roles` (
+        `group_id` int(11) unsigned NOT NULL,
+        `role_id` int(11) unsigned NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS `users_rights` (
+        `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+        `location` varchar(255) NOT NULL,
+        `rights` text NOT NULL,
+        PRIMARY KEY (`id`)
+    );
+
+    CREATE TABLE IF NOT EXISTS `users_roles` (
+        `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+        `name` varchar(255) NOT NULL,
+        PRIMARY KEY (`id`)
+    );
+
+    CREATE TABLE IF NOT EXISTS `users_roles_rights` (
+        `role_id` int(11) unsigned NOT NULL,
+        `right_id` int(11) unsigned NOT NULL,
+        PRIMARY KEY (`role_id`, `right_id`)
+    );
+
+
 ###Installation
 
-    Add `http://github.com/Phil-F` to your packages config and run `php oil install DbRoutes`.
+    Add `http://github.com/dbpolito` to your packages config and run `php oil cells install DbGroups`.
 
 
-    *** Edit the packages/dbroutes/config/config.php to suit you
+    *** Edit the packages/dbgroups/config/dbgroups.php as you need
 
 
     *** In app/config/congig.php add dbroutes to the always load packages
 
     'always_load'	=> array(
 		'packages'	=> array(
-            'dbroutes',
+            'dbgroups',
 		),
 
 
-	*** Replace app/config/routes.php with the the packages/dbroutes/config/routes.php or alter yours
+	*** Replace app/config/simpleauth.php with the the packages/dbgroups/config/simpleauth.php or alter yours
 	    so it similar to the following:
 
-	<?php
-    return array_merge(array(
-    '_root_' => 'welcome/index', // The default route
-    '_404_' => 'welcome/404', // The main 404 route
-    ), \DbRoutes::load());
+	'groups' => \DbGroups::get('groups'),
+    'roles' => \DbGroups::get('roles'),
 
 
 ###Administration
 
-	In an admin form allow for three inputs:
-
-	* `$url_route` Suggested field input type textarea
-	* `$named_route` to allow for the support of named routes
-	* `$translation` the actual real route. Suggested field input type textarea
-
-	Basic example processing below:
-
-	// The data below would come from form input
-
-	$url_route = 'logout';
-	$named_route = 'logout';
-	$translation = 'user/user/logout';
-
-	// Process the data and allow for named routes
-	if ( ! empty($named_route))
-	{
-	    $route = array('name' => $named_route, $translation);
-	}
-	else
-	{
-	    $route = $translation;
-	}
-
-	$data = array(
-	    'route' => $url_route,
-	    'translation' => serialize($route)
-	);
-
-
-	// Example update
-
-	DB::insert('dbroutes')->set($data)->execute();
-
-	// Then re-cache the routes
-
-	DbRoutes::refresh();
+	Coming Soon
