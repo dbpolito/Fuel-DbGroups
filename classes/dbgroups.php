@@ -67,7 +67,6 @@ class DbGroups
 							->from(static::$t_roles)
 							->join(static::$t_groups_roles)
 								->on(static::$t_groups_roles.'.role_id', '=', static::$t_roles.'.id')
-								//->on(static::$groups_roles.'.group_id', '=', $group['id'])
 							->where(static::$t_groups_roles.'.group_id', $group['id'])
 							->execute()
 							->as_array();
