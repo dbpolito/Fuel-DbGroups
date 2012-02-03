@@ -2,19 +2,50 @@
 
 namespace DbGroups;
 /**
- * Handles all the loading, caching and re-caching of routes from a
- * database table.
+ * Gets all ACL permission in the Database
  */
 class DbGroups
 {
 
-	public static $t_groups = null;
-	public static $t_groups_roles = null;
-	public static $t_rights = null;
-	public static $t_roles = null;
-	public static $t_roles_rights = null;
+	public static $t_groups = array(
+		'table' => 'users_groups',
+		'column' => array(
+			'name' => 'name',
+		)
+	);
+
+	public static $t_groups_roles = array(
+		'table' => 'users_groups_roles',
+		'column' => array(
+			'group_id' => 'group_id',
+			'role_id' => 'role_id'
+		)
+	);
+
+	public static $t_rights = array(
+		'table' => 'users_rights',
+		'column' => array(
+			'location' => 'location',
+			'rights' => 'rights',
+		)
+	);
+
+	public static $t_roles = array(
+		'table' => 'users_roles',
+		'column' => array(
+			'name' => 'name',
+		)
+	);
+
+	public static $t_roles_rights = array(
+		'table' => 'users_roles_rights',
+		'column' => array(
+			'role_id' => 'role_id',
+			'permission_id' => 'permission_id'
+		)
+	);
 	
-	protected static $cache_id = null;
+	protected static $cache_id = 'users_groups';
 
 	protected static $groups = array();
 	protected static $roles = array();
@@ -25,13 +56,7 @@ class DbGroups
 	 */
 	public static function _init()
 	{
-		\Config::load('dbgroups', true);
-
-		static::$t_groups = \Config::get('dbgroups.db.groups', 'users_groups');
-		static::$t_groups_roles = \Config::get('dbgroups.db.groups_roles', 'users_groups_roles');
-		static::$t_rights = \Config::get('dbgroups.db.rights', 'user_rights');
-		static::$t_roles = \Config::get('dbgroups.db.roles', 'user_roles');
-		static::$t_roles_rights = \Config::get('dbgroups.db.roles_rights', 'user_roles_rights');
+		\Config::load('dbgroups', 'dbgroups');
 		
 		static::$cache_id = \Config::get('dbgroups.cache.cacheid', 'users_groups');
 	}
@@ -56,39 +81,45 @@ class DbGroups
 			static::$groups = array();
 			static::$roles = array();
 
-			// Note: The real_route is serialized to support named routes
-			$db_groups = \DB::select('*')->from(static::$t_groups)->execute()->as_array();
+			$groups = \Config::get('dbgroups.db.groups', static::$t_groups);
+			$groups_roles = \Config::get('dbgroups.db.groups_roles', static::$t_groups_roles);
+			$rights = \Config::get('dbgroups.db.rights', static::$t_rights);
+			$roles = \Config::get('dbgroups.db.roles', static::$t_roles);
+			$roles_rights = \Config::get('dbgroups.db.roles_rights', static::$t_roles_rights);
+
+			$db_groups = \DB::select('*')->from($groups['table'])->execute()->as_array();
+
 			if ($db_groups) {
 				foreach ($db_groups as $group)
 				{
-					static::$groups[$group['id']] = array('name' => $group['name'], 'roles' => array());
+					static::$groups[$group['id']] = array('name' => $group[$groups['column']['name']], 'roles' => array());
 
-					$db_roles = \DB::select(static::$t_roles.'.*')
-							->from(static::$t_roles)
-							->join(static::$t_groups_roles)
-								->on(static::$t_groups_roles.'.role_id', '=', static::$t_roles.'.id')
-							->where(static::$t_groups_roles.'.group_id', $group['id'])
+					$db_roles = \DB::select($roles['table'].'.*')
+							->from($roles['table'])
+							->join($groups_roles['table'])
+								->on($groups_roles['table'].'.'.$groups_roles['column']['role_id'], '=', $roles['table'].'.id')
+							->where($groups_roles['table'].'.'.$groups_roles['column']['group_id'], $group['id'])
 							->execute()
 							->as_array();
 
 					if ($db_roles) {
 						foreach ($db_roles as $role)
 						{
-							static::$groups[$group['id']]['roles'][] = $role['name'];
-							static::$roles[$role['name']] = array();
+							static::$groups[$group['id']]['roles'][] = $role[$roles['column']['name']];
+							static::$roles[$role[$roles['column']['name']]] = array();
 
-							$db_rights = \DB::select(static::$t_rights.'.*')
-									->from(static::$t_rights)
-									->join(static::$t_roles_rights)
-										->on(static::$t_roles_rights.'.right_id', '=', static::$t_rights.'.id')
-									->where(static::$t_roles_rights.'.role_id', $role['id'])
+							$db_rights = \DB::select($rights['table'].'.*')
+									->from($rights['table'])
+									->join($roles_rights['table'])
+										->on($roles_rights['table'].'.'.$roles_rights['column']['right_id'], '=', $rights['table'].'.id')
+									->where($roles_rights['table'].'.'.$roles_rights['column']['role_id'], $role['id'])
 									->execute()
 									->as_array();
 							
 							if ($db_rights) {
-								foreach ($db_rights as $rights)
+								foreach ($db_rights as $right)
 								{
-									static::$roles[$role['name']][] = array($rights['location'] => explode(',', $rights['rights']));
+									static::$roles[$roles['column']['name']][] = array($right[$rights['column']['location']] => explode(',', $right[$rights['column']['rights']]));
 								}
 							}
 						}
